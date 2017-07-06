@@ -1,6 +1,5 @@
 "Utility functions for Mininet."
 
-from __future__ import print_function
 
 from mininet.log import output, info, error, warn, debug
 
@@ -322,7 +321,7 @@ def ipParse( ip ):
     "Parse an IP address and return an unsigned int."
     args = [ int( arg ) for arg in ip.split( '.' ) ]
     while len(args) < 4:
-        args.append( 0 )
+        args.insert( len(args) - 1, 0 )
     return ipNum( *args )
 
 def netParse( ipstr ):
@@ -589,7 +588,7 @@ def ensureRoot():
     Probably we should only sudo when needed as per Big Switch's patch.
     """
     if os.getuid() != 0:
-        print( "*** Mininet must run as root." )
+        error( '*** Mininet must run as root.\n' )
         exit( 1 )
     return
 

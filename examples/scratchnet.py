@@ -8,7 +8,6 @@ but it exposes the configuration details and allows customization.
 For most tasks, the higher-level API will be preferable.
 """
 
-from __future__ import print_function
 
 from mininet.net import Mininet
 from mininet.node import Node
@@ -42,7 +41,7 @@ def scratchNet( cname='controller', cargs='-v ptcp:' ):
     switch.cmd( 'ovs-vsctl del-br dp0' )
     switch.cmd( 'ovs-vsctl add-br dp0' )
     for intf in switch.intfs.values():
-        print( switch.cmd( 'ovs-vsctl add-port dp0 %s' % intf ) )
+        switch.cmd( 'ovs-vsctl add-port dp0 %s\n' % intf )
 
     # Note: controller and switch are in root namespace, and we
     # can connect via loopback interface

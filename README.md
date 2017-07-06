@@ -1,9 +1,10 @@
 Mininet: Rapid Prototyping for Software Defined Networks
 ========================================================
-
 *The best way to emulate almost any network on your laptop!*
 
 Mininet 2.3.0d1
+
+[![Build Status][1]](https://travis-ci.org/mininet/mininet)
 
 ### What is Mininet?
 
@@ -125,5 +126,7 @@ hard work that Mininet continues to grow and improve.
 Best wishes, and we look forward to seeing what you can do with
 Mininet to change the networking world!
 
-Bob Lantz
+Bob Lantz  
 Mininet Core Team
+
+[1]: https://travis-ci.org/mininet/mininet.svg?branch=master

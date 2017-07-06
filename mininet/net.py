@@ -144,7 +144,9 @@ class Mininet( object ):
         self.intf = intf
         self.ipBase = ipBase
         self.ipBaseNum, self.prefixLen = netParse( self.ipBase )
-        self.nextIP = 1  # start for address allocation
+        hostIP = ( 0xffffffff >> self.prefixLen ) & self.ipBaseNum
+        # Start for address allocation
+        self.nextIP = hostIP if hostIP > 0 else 1
         self.inNamespace = inNamespace
         self.xterms = xterms
         self.cleanup = cleanup
@@ -226,6 +228,24 @@ class Mininet( object ):
         self.nameToNode[ name ] = h
         return h
 
+    def delNode( self, node, nodes=None):
+        """Delete node
+           node: node to delete
+           nodes: optional list to delete from (e.g. self.hosts)"""
+        if nodes is None:
+            nodes = ( self.hosts if node in self.hosts else
+                      ( self.switches if node in self.switches else
+                        ( self.controllers if node in self.controllers else
+                          [] ) ) )
+        node.stop( deleteIntfs=True )
+        node.terminate()
+        nodes.remove( node )
+        del self.nameToNode[ node.name ]
+
+    def delHost( self, host ):
+        "Delete a host"
+        self.delNode( host, nodes=self.hosts )
+
     def addSwitch( self, name, cls=None, **params ):
         """Add switch.
            name: name of switch to add
@@ -243,6 +263,10 @@ class Mininet( object ):
         self.switches.append( sw )
         self.nameToNode[ name ] = sw
         return sw
+
+    def delSwitch( self, switch ):
+        "Delete a switch"
+        self.delNode( switch, nodes=self.switches )
 
     def addController( self, name='c0', controller=None, **params ):
         """Add controller.
@@ -264,6 +288,12 @@ class Mininet( object ):
             self.controllers.append( controller_new )
             self.nameToNode[ name ] = controller_new
         return controller_new
+
+    def delController( self, controller ):
+        """Delete a controller
+           Warning - does not reconfigure switches, so they
+           may still attempt to connect to it!"""
+        self.delNode( controller )
 
     def addNAT( self, name='nat0', connect=True, inNamespace=False,
                 **params):
@@ -303,8 +333,12 @@ class Mininet( object ):
 
     # Even more convenient syntax for node lookup and iteration
     def __getitem__( self, key ):
-        """net [ name ] operator: Return node(s) with given name(s)"""
+        "net[ name ] operator: Return node with given name"
         return self.nameToNode[ key ]
+
+    def __delitem__( self, key ):
+        "del net[ name ] operator - delete node with given name"
+        self.delNode( self.nameToNode[ key ] )
 
     def __iter__( self ):
         "return iterator over node names"
@@ -366,6 +400,30 @@ class Mininet( object ):
         link = cls( node1, node2, **options )
         self.links.append( link )
         return link
+
+    def delLink( self, link ):
+        "Remove a link from this network"
+        link.delete()
+        self.links.remove( link )
+
+    def linksBetween( self, node1, node2 ):
+        "Return Links between node1 and node2"
+        return [ link for link in self.links
+                 if ( node1, node2 ) in (
+                    ( link.intf1.node, link.intf2.node ),
+                    ( link.intf2.node, link.intf1.node ) ) ]
+
+    def delLinkBetween( self, node1, node2, index=0, allLinks=False ):
+        """Delete link(s) between node1 and node2
+           index: index of link to delete if multiple links (0)
+           allLinks: ignore index and delete all such links (False)
+           returns: deleted link(s)"""
+        links = self.linksBetween( node1, node2 )
+        if not allLinks:
+            links = [ links[ index ] ]
+        for link in links:
+            self.delLink( link )
+        return links
 
     def configHosts( self ):
         "Configure a set of hosts."
@@ -576,7 +634,7 @@ class Mininet( object ):
         # Check for downed link
         if 'connect: Network is unreachable' in pingOutput:
             return 1, 0
-        r = r'(\d+) packets transmitted, (\d+) received'
+        r = r'(\d+) packets transmitted, (\d+)( packets)? received'
         m = re.search( r, pingOutput )
         if m is None:
             error( '*** Error: could not parse ping output: %s\n' %
@@ -638,7 +696,7 @@ class Mininet( object ):
         m = re.search( r, pingOutput )
         if m is not None:
             return errorTuple
-        r = r'(\d+) packets transmitted, (\d+) received'
+        r = r'(\d+) packets transmitted, (\d+)( packets)? received'
         m = re.search( r, pingOutput )
         if m is None:
             error( '*** Error: could not parse ping output: %s\n' %
@@ -769,7 +827,7 @@ class Mininet( object ):
         debug( 'Client output: %s\n' % cliout )
         servout = ''
         # We want the last *b/sec from the iperf server output
-        # for TCP, there are two fo them because of waitListening
+        # for TCP, there are two of them because of waitListening
         count = 2 if l4Type == 'TCP' else 1
         while len( re.findall( '/sec', servout ) ) < count:
             servout += server.monitor( timeoutms=5000 )
@@ -788,7 +846,6 @@ class Mininet( object ):
         duration: test duration in seconds (integer)
         returns a single list of measured CPU fractions as floats.
         """
-        cores = int( quietRun( 'nproc' ) )
         pct = cpu * 100
         info( '*** Testing CPU %.0f%% bandwidth limit\n' % pct )
         hosts = self.hosts
@@ -840,10 +897,8 @@ class Mininet( object ):
         elif dst not in self.nameToNode:
             error( 'dst not in network: %s\n' % dst )
         else:
-            if isinstance( src, basestring ):
-                src = self.nameToNode[ src ]
-            if isinstance( dst, basestring ):
-                dst = self.nameToNode[ dst ]
+            src = self.nameToNode[ src ]
+            dst = self.nameToNode[ dst ]
             connections = src.connectionsTo( dst )
             if len( connections ) == 0:
                 error( 'src and dst not connected: %s %s\n' % ( src, dst) )

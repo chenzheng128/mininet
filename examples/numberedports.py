@@ -6,7 +6,6 @@ Validate that the port numbers match to the interface name,
 and that the ovs ports match the mininet ports.
 """
 
-from __future__ import print_function
 
 from mininet.net import Mininet
 from mininet.node import Controller
@@ -67,13 +66,13 @@ def testPortNumbering():
                    'is actually on port', s1.ports[intfs], '... ' )
             if validatePort( s1, intfs ):
                 info( 'Validated.\n' )
-    print( '\n' )
+    info( '\n' )
 
     # test the network with pingall
     net.pingAll()
-    print( '\n' )
+    info( '\n' )
 
-    info( '*** Stopping network' )
+    info( '*** Stopping network\n' )
     net.stop()
 
 if __name__ == '__main__':

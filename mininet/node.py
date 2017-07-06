@@ -431,6 +431,15 @@ class Node( object ):
             debug( 'moving', intf, 'into namespace for', self.name, '\n' )
             moveIntfFn( intf.name, self  )
 
+    def delIntf( self, intf ):
+        """Remove interface from Node's known interfaces
+           Note: to fully delete interface, call intf.delete() instead"""
+        port = self.ports.get( intf )
+        if port is not None:
+            del self.intfs[ port ]
+            del self.ports[ intf ]
+            del self.nameToIntf[ intf.name ]
+
     def defaultIntf( self ):
         "Return interface for lowest port"
         ports = self.intfs.keys()
@@ -686,15 +695,15 @@ class CPULimitedHost( Host ):
         _out, _err, exitcode = errRun( 'cgdelete -r ' + self.cgroup )
         # Sometimes cgdelete returns a resource busy error but still
         # deletes the group; next attempt will give "no such file"
-        return exitcode == 0  or ( 'no such file' in _err.lower() )
+        return exitcode == 0 or ( 'no such file' in _err.lower() )
 
     def popen( self, *args, **kwargs ):
         """Return a Popen() object in node's namespace
            args: Popen() args, single list, or string
            kwargs: Popen() keyword args"""
         # Tell mnexec to execute command in our cgroup
-        mncmd = [ 'mnexec', '-g', self.name,
-                  '-da', str( self.pid ) ]
+        mncmd = kwargs.pop( 'mncmd', [ 'mnexec', '-g', self.name,
+                                       '-da', str( self.pid ) ] )
         # if our cgroup is not given any cpu time,
         # we cannot assign the RR Scheduler.
         if self.sched == 'rt':

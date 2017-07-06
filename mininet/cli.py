@@ -25,7 +25,6 @@ list all nodes ('nodes'), to print out the network topology
 and bandwidth ('iperf'.)
 """
 
-from __future__ import print_function
 from subprocess import call
 from cmd import Cmd
 from os import isatty
@@ -374,7 +373,7 @@ class CLI( Cmd ):
     def do_links( self, _line ):
         "Report on links"
         for link in self.mn.links:
-            print( link, link.status() )
+            output( link, link.status(), '\n' )
 
     def do_switch( self, line ):
         "Starts or stops a switch"
@@ -400,15 +399,16 @@ class CLI( Cmd ):
 
     def default( self, line ):
         """Called on an input line when the command prefix is not recognized.
-        Overridden to run shell commands when a node is the first CLI argument.
-        Past the first CLI argument, node names are automatically replaced with
-        corresponding IP addrs."""
+           Overridden to run shell commands when a node is the first
+           CLI argument.  Past the first CLI argument, node names are
+           automatically replaced with corresponding IP addrs."""
 
         first, args, line = self.parseline( line )
 
         if first in self.mn:
             if not args:
-                print( "*** Enter a command for node: %s <cmd>" % first )
+                error( '*** Please enter a command for node: %s <cmd>\n'
+                       % first )
                 return
             node = self.mn[ first ]
             rest = args.split( ' ' )
